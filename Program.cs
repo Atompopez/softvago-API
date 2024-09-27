@@ -28,7 +28,18 @@ namespace softvago_API
             app.UseAuthorization();
 
 
+            app.UseSwagger(); // Habilitar Swagger
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ResiGrass API V1");
+                c.RoutePrefix = string.Empty;
+            });
+
+
             app.MapControllers();
+
+
+            app.Urls.Add("http://0.0.0.0:4040");
 
             app.Run();
         }
