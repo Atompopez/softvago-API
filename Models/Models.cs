@@ -60,5 +60,12 @@ namespace softvago_API.Models
         [Required] public int idRol;
         [Required] public bool enable;
     }
+
+    public class ResponseAPI
+    {
+        public bool success;
+        public string message;
+        public dynamic data;
+    }
 }
     
