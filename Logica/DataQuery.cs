@@ -1,6 +1,5 @@
 ﻿using Npgsql;
 using softvago_API.Models;
-using Microsoft.Extensions.Configuration;
 
 namespace softvago_API.Logica
 {
@@ -17,7 +16,7 @@ namespace softvago_API.Logica
             _connectionString = configuration.GetConnectionString("Office");
         }
 
-        private async Task<T> ExecuteQueryAsync<T>(string sql, Func<NpgsqlDataReader, T> readFunc, params NpgsqlParameter[] parameters)
+        private async Task<List<T>> ExecuteQueryAsync<T>(string sql, Func<NpgsqlDataReader, T> readFunc, params NpgsqlParameter[] parameters)
         {
             using (var conn = new NpgsqlConnection(_connectionString))
             {
@@ -40,48 +39,75 @@ namespace softvago_API.Logica
 
         private async Task<int> ExecuteNonQueryAsync(string sql, params NpgsqlParameter[] parameters)
         {
-            using (var conn = new NpgsqlConnection(_connectionString))
+            try
             {
-                await conn.OpenAsync();
-                using (var cmd = new NpgsqlCommand(sql, conn))
+                using (var conn = new NpgsqlConnection(_connectionString))
                 {
-                    cmd.Parameters.AddRange(parameters);
-                    return await cmd.ExecuteNonQueryAsync();
+                    await conn.OpenAsync();
+                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddRange(parameters);
+                        if (sql.TrimStart().StartsWith("SELECT COUNT", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var result = await cmd.ExecuteScalarAsync();
+                            return (int)Convert.ToInt32(result);
+                        }
+                        else
+                        {
+                            int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                            return rowsAffected;
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                throw;
             }
         }
 
         public async Task<List<Api>> GetApis()
         {
             const string sql = "SELECT * FROM softvago_test.apis";
-            return await ExecuteQueryAsync(reader => new Api
+            return await ExecuteQueryAsync(sql, reader => new Api
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 apiName = reader.GetString(reader.GetOrdinal("apiName")),
                 baseUrl = reader.GetString(reader.GetOrdinal("baseUrl")),
                 description = reader.GetString(reader.GetOrdinal("description")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
         }
 
         public async Task<int> UpdateApi(Api apiToUpdate)
         {
-            const string selectSql = "SELECT COUNT(*) FROM softvago_test.apis WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.apis SET description = @Description, enable = @Enable WHERE id = @Id";
+            try
+            {
+                const string selectSql = "SELECT COUNT(*) FROM softvago_test.apis WHERE id = @Id";
+                const string updateSql = "UPDATE softvago_test.apis SET description = @Description, enable = @Enable WHERE id = @Id";
 
-            var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", apiToUpdate.id));
-            if (count == 0) return 0;
+                var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", apiToUpdate.id));
+                if (count == 0) return 0;
 
-            return await ExecuteNonQueryAsync(updateSql,
-                new NpgsqlParameter("@Description", apiToUpdate.description),
-                new NpgsqlParameter("@Enable", apiToUpdate.enable),
-                new NpgsqlParameter("@Id", apiToUpdate.id));
+                return await ExecuteNonQueryAsync(updateSql,
+                    new NpgsqlParameter("@Description", apiToUpdate.description),
+                    new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                    {
+                        Value = apiToUpdate.enable
+                    },
+                    new NpgsqlParameter("@Id", apiToUpdate.id));
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
 
         public async Task<List<Job>> GetJobs()
         {
             const string sql = "SELECT * FROM softvago_test.jobs";
-            return await ExecuteQueryAsync(reader => new Job
+            return await ExecuteQueryAsync(sql, reader => new Job
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 title = reader.GetString(reader.GetOrdinal("title")),
@@ -92,7 +118,7 @@ namespace softvago_API.Logica
                 idLocation = reader.GetInt32(reader.GetOrdinal("idLocation")),
                 idModality = reader.GetInt32(reader.GetOrdinal("idModality")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
         }
 
         public async Task<int> UpdateJob(Job jobToUpdate)
@@ -104,7 +130,10 @@ namespace softvago_API.Logica
             if (count == 0) return 0;
 
             return await ExecuteNonQueryAsync(updateSql,
-                new NpgsqlParameter("@Enable", jobToUpdate.enable),
+                 new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                 {
+                     Value = jobToUpdate.enable
+                 },
                 new NpgsqlParameter("@Id", jobToUpdate.id));
         }
 
@@ -122,58 +151,96 @@ namespace softvago_API.Logica
         public async Task<List<Location>> GetLocations()
         {
             const string sql = "SELECT * FROM softvago_test.locations";
-            return await ExecuteQueryAsync(reader => new Location
+            return await ExecuteQueryAsync(sql, reader => new Location
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 city = reader.GetString(reader.GetOrdinal("city")),
                 country = reader.GetString(reader.GetOrdinal("country")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
+        }
+
+        public async Task<int> UpdateLocation(Location locationToUpdate)
+        {
+            const string selectSql = "SELECT COUNT(*) FROM softvago_test.locations WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.locations SET city = @City, country = @Country, enable = @Enable WHERE id = @Id";
+
+            var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", locationToUpdate.id));
+            if (count == 0) return 0;
+
+            return await ExecuteNonQueryAsync(updateSql,
+                new NpgsqlParameter("@City", locationToUpdate.city),
+                new NpgsqlParameter("@Country", locationToUpdate.country),
+                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                {
+                    Value = locationToUpdate.enable
+                },
+                new NpgsqlParameter("@Id", locationToUpdate.id));
         }
 
         public async Task<List<Modality>> GetModality()
         {
             const string sql = "SELECT * FROM softvago_test.modality";
-            return await ExecuteQueryAsync(reader => new Modality
+            return await ExecuteQueryAsync(sql, reader => new Modality
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 name = reader.GetString(reader.GetOrdinal("name")),
                 description = reader.GetString(reader.GetOrdinal("description")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
         }
 
         public async Task<int> UpdateModality(Modality modalityToUpdate)
         {
             const string selectSql = "SELECT COUNT(*) FROM softvago_test.modality WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.modality SET name = @Name, description = @Description, enable = @Enable WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.modality SET description = @Description, enable = @Enable WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", modalityToUpdate.id));
             if (count == 0) return 0;
 
             return await ExecuteNonQueryAsync(updateSql,
-                new NpgsqlParameter("@Name", modalityToUpdate.name),
                 new NpgsqlParameter("@Description", modalityToUpdate.description),
-                new NpgsqlParameter("@Enable", modalityToUpdate.enable),
+                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                {
+                    Value = modalityToUpdate.enable
+                },
                 new NpgsqlParameter("@Id", modalityToUpdate.id));
         }
 
         public async Task<List<Rol>> GetRoles()
         {
-            const string sql = "SELECT * FROM softvago_test.rol WHERE enable = B'1'";
-            return await ExecuteQueryAsync(reader => new Rol
+            const string sql = "SELECT * FROM softvago_test.rol";
+            return await ExecuteQueryAsync(sql, reader => new Rol
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 name = reader.GetString(reader.GetOrdinal("name")),
                 description = reader.GetString(reader.GetOrdinal("description")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
+        }
+
+        public async Task<int> UpdateRol(Rol rolToUpdate)
+        {
+            const string selectSql = "SELECT COUNT(*) FROM softvago_test.rol WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.rol SET name = @Name, description = @Description, enable = @Enable WHERE id = @Id";
+
+            var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", rolToUpdate.id));
+            if (count == 0) return 0;
+
+            return await ExecuteNonQueryAsync(updateSql,
+                new NpgsqlParameter("@Name", rolToUpdate.name),
+                new NpgsqlParameter("@Description", rolToUpdate.description),
+                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                {
+                    Value = rolToUpdate.enable
+                },
+                new NpgsqlParameter("@Id", rolToUpdate.id));
         }
 
         public async Task<List<User>> GetUsers()
         {
-            const string sql = "SELECT * FROM softvago_test.users WHERE enable = B'1'";
-            return await ExecuteQueryAsync(reader => new User
+            const string sql = "SELECT * FROM softvago_test.users";
+            return await ExecuteQueryAsync(sql, reader => new User
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 name = reader.GetString(reader.GetOrdinal("name")),
@@ -183,12 +250,12 @@ namespace softvago_API.Logica
                 registrationDate = reader.GetDateTime(reader.GetOrdinal("registrationDate")).ToString("yyyy-MM-dd"),
                 idRol = reader.GetInt32(reader.GetOrdinal("idRol")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            }, sql);
+            });
         }
 
         public async Task<int> UpdateUser(User userToUpdate)
         {
-            const string selectSql = "SELECT COUNT(*) FROM softvago_test.user WHERE id = @Id AND enable = B'1'";
+            const string selectSql = "SELECT COUNT(*) FROM softvago_test.user WHERE id = @Id";
             const string updateSql = "UPDATE softvago_test.apis SET name = @Name, lastName = @LastName, email = @Email, password = @Password, idRol = @IdRol, enable = @Enable WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", userToUpdate.id));
@@ -200,7 +267,10 @@ namespace softvago_API.Logica
                 new NpgsqlParameter("@Email", userToUpdate.email),
                 new NpgsqlParameter("@Password", userToUpdate.password),
                 new NpgsqlParameter("@IdRol", userToUpdate.idRol),
-                new NpgsqlParameter("@Enable", userToUpdate.enable),
+                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                {
+                    Value = userToUpdate.enable
+                },
                 new NpgsqlParameter("@Id", userToUpdate.id));
         }
     }

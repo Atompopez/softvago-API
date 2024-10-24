@@ -109,38 +109,17 @@ namespace softvago_API.Controllers
             }
         }
 
-        [HttpGet]
-        [Route("GetModality")]
-        public async Task<ActionResult> GetModality()
-        {
-            try
-            {
-                var response = await _dataQuery.GetModality();
-
-                if (response is not null || response?.Count > 0)
-                {
-                    var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
-                    return Ok(jsonString);
-                }
-                return NoContent();
-            }
-            catch
-            {
-                return BadRequest("Hubo un error en la consulta");
-            }
-        }
-
         [HttpPut]
-        [Route("UpdateJob")]
-        public async Task<ActionResult> UpdateModality([FromBody] Modality modalityToUpdate)
+        [Route("AddClickJob/{id}")]
+        public async Task<ActionResult> AddClickJob([FromBody] int id) 
         {
             try
             {
-                if (modalityToUpdate == null || modalityToUpdate.id == 0)
+                if (id == 0)
                 {
                     return BadRequest("Datos inválidos para la actualización");
                 }
-                var updateResult = await _dataQuery.UpdateModality(modalityToUpdate);
+                var updateResult = await _dataQuery.AddClickJob(id);
 
                 if (updateResult > 0)
                 {
@@ -148,7 +127,7 @@ namespace softvago_API.Controllers
                 }
                 else
                 {
-                    return NotFound("No se encontró la modalidad para actualizar");
+                    return NotFound("No se encontró el empleo para actualizar");
                 }
             }
             catch (Exception ex)
@@ -178,6 +157,83 @@ namespace softvago_API.Controllers
             }
         }
 
+        [HttpPut]
+        [Route("UpdateLocation")]
+        public async Task<ActionResult> UpdateLocation([FromBody] Location locationToUpdate)
+        {
+            try
+            {
+                if (locationToUpdate == null || locationToUpdate.id == 0)
+                {
+                    return BadRequest("Datos inválidos para la actualización");
+                }
+                var updateResult = await _dataQuery.UpdateLocation(locationToUpdate);
+
+                if (updateResult > 0)
+                {
+                    return Ok("Actualización exitosa");
+                }
+                else
+                {
+                    return NotFound("No se encontró la localización para actualizar");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Hubo un error en la actualización");
+            }
+        }
+
+        [HttpGet]
+        [Route("GetModality")]
+        public async Task<ActionResult> GetModality()
+        {
+            try
+            {
+                var response = await _dataQuery.GetModality();
+
+                if (response is not null || response?.Count > 0)
+                {
+                    var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
+                    return Ok(jsonString);
+                }
+                return NoContent();
+            }
+            catch
+            {
+                return BadRequest("Hubo un error en la consulta");
+            }
+        }
+
+        [HttpPut]
+        [Route("UpdateModality")]
+        public async Task<ActionResult> UpdateModality([FromBody] Modality modalityToUpdate)
+        {
+            try
+            {
+                if (modalityToUpdate == null || modalityToUpdate.id == 0)
+                {
+                    return BadRequest("Datos inválidos para la actualización");
+                }
+                var updateResult = await _dataQuery.UpdateModality(modalityToUpdate);
+
+                if (updateResult > 0)
+                {
+                    return Ok("Actualización exitosa");
+                }
+                else
+                {
+                    return NotFound("No se encontró la modalidad para actualizar");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Hubo un error en la actualización");
+            }
+        }
+
+        
+
         [HttpGet]
         [Route("GetRoles")]
         public async Task<ActionResult> GetRoles()
@@ -196,6 +252,33 @@ namespace softvago_API.Controllers
             catch
             {
                 return BadRequest("Hubo un error en la consulta");
+            }
+        }
+
+        [HttpPut]
+        [Route("UpdateRole")]
+        public async Task<ActionResult> UpdateRole([FromBody] Rol roleToUpdate)
+        {
+            try
+            {
+                if (roleToUpdate == null || roleToUpdate.id == 0)
+                {
+                    return BadRequest("Datos inválidos para la actualización");
+                }
+                var updateResult = await _dataQuery.UpdateRol(roleToUpdate);
+
+                if (updateResult > 0)
+                {
+                    return Ok("Actualización exitosa");
+                }
+                else
+                {
+                    return NotFound("No se encontró el rol para actualizar");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Hubo un error en la actualización");
             }
         }
 
