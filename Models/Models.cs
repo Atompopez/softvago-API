@@ -55,16 +55,29 @@ namespace softvago_API.Models
         [Required] public string name { get; set; }
         [Required] public string lastName { get; set; }
         [Required] public string email { get; set; }
-        [Required] public string password { get; set; }
         [Required] public string registrationDate { get; set; }
         [Required] public int idRol { get; set; }
         [Required] public bool enable { get; set; }
+        [Required] public Login? login { get; set; }
     }
 
-    public class ResponseAPI
+    public class JWT
     {
-        public bool success { get; set; }
-        public string message { get; set; }
-        public dynamic data { get; set; }
+        [Required] public string Key { get; set; }
+        [Required] public string Issuer { get; set; }
+        [Required] public string Audience { get; set; }
+        [Required] public string Subject { get; set; }
+    }
+
+    public class Login
+    {
+        [Required] public string username { get; set; }
+        [Required] public string password { get; set; }
+    }
+
+    public class userAuth
+    {
+        [Required] public User user { get; set; }
+        [Required] public string token { get; set; }
     }
 }

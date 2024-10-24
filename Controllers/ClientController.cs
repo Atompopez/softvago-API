@@ -8,9 +8,41 @@ namespace softvago_API.Controllers
     public class ClientController : Controller
     {
         private readonly DataQuery? _dataQuery;
+        private readonly Jwt? _jwt;
+
         public ClientController()
         {
             _dataQuery = new DataQuery();
+            _jwt = new Jwt();
+        }
+
+        [HttpGet]
+        [Route("Login")]
+        public async Task<ActionResult> Login([FromBody] Login loginCredentials)
+        {
+            try
+            {
+                var response = await _dataQuery.Authenticate(loginCredentials);
+
+                if (response.success)
+                {
+                    var token = GenerateJwtToken(user);
+                    var responseAPI = new
+                    {
+                        Message = "Inicio de sesión exitoso",
+                        data = response.data,
+                        Token = token
+                    };
+
+                    return Ok(responseAPI);
+                }
+
+                return Unauthorized("Credenciales incorrectas");
+            }
+            catch
+            {
+                return BadRequest("Hubo un error durante el proceso de login");
+            }
         }
 
         [HttpGet]

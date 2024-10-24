@@ -6,6 +6,7 @@ namespace softvago_API.Logica
     public class DataQuery
     {
         private readonly string? _connectionString;
+        private readonly Utils _utils = new Utils();
 
         public DataQuery()
         {
@@ -64,6 +65,45 @@ namespace softvago_API.Logica
             {
                 throw;
             }
+        }
+
+        public async Task<dynamic> Authenticate(Login loginCredentials)
+        {
+            const string sql = "SELECT * FROM softvago_test.users WHERE username = @Username";
+
+            var user = await ExecuteQueryAsync(sql, reader => new User
+                        {
+                            id = reader.GetInt32(reader.GetOrdinal("id")),
+                            name = reader.GetString(reader.GetOrdinal("name")),
+                            lastName = reader.GetString(reader.GetOrdinal("lastName")),
+                            email = reader.GetString(reader.GetOrdinal("email")),
+                            registrationDate = reader.GetDateTime(reader.GetOrdinal("registrationDate")).ToString("yyyy-MM-dd"),
+                            idRol = reader.GetInt32(reader.GetOrdinal("idRol")),
+                            enable = reader.GetBoolean(reader.GetOrdinal("enable")),
+                            login = new Login
+                            {
+                                username = reader.GetString(reader.GetOrdinal("username")),
+                                password = reader.GetString(reader.GetOrdinal("password"))
+                            }
+                        },
+                        new NpgsqlParameter("@Username", loginCredentials.username));
+
+            if (user is not null && user.Count > 0)
+            {
+                string hashedInputPassword = _utils.HashGenerator(loginCredentials.password);
+
+                if (hashedInputPassword == user[0].login.password)
+                {
+                    user[0].login = null;
+                    return new
+                    {
+                        success = true,
+                        data = user[0]
+                    };
+                }
+            }
+
+            return false;
         }
 
         public async Task<List<Api>> GetApis()
@@ -246,17 +286,21 @@ namespace softvago_API.Logica
                 name = reader.GetString(reader.GetOrdinal("name")),
                 lastName = reader.GetString(reader.GetOrdinal("lastName")),
                 email = reader.GetString(reader.GetOrdinal("email")),
-                password = reader.GetString(reader.GetOrdinal("password")),
                 registrationDate = reader.GetDateTime(reader.GetOrdinal("registrationDate")).ToString("yyyy-MM-dd"),
                 idRol = reader.GetInt32(reader.GetOrdinal("idRol")),
-                enable = reader.GetBoolean(reader.GetOrdinal("enable"))
+                enable = reader.GetBoolean(reader.GetOrdinal("enable")),
+                login = new Login
+                {
+                    username = reader.GetString(reader.GetOrdinal("username")),
+                    password = reader.GetString(reader.GetOrdinal("password"))
+                }
             });
         }
 
         public async Task<int> UpdateUser(User userToUpdate)
         {
             const string selectSql = "SELECT COUNT(*) FROM softvago_test.user WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.apis SET name = @Name, lastName = @LastName, email = @Email, password = @Password, idRol = @IdRol, enable = @Enable WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.apis SET name = @Name, lastName = @LastName, email = @Email, password = @Password, username = @username, idRol = @IdRol, enable = @Enable WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", userToUpdate.id));
             if (count == 0) return 0;
@@ -265,7 +309,8 @@ namespace softvago_API.Logica
                 new NpgsqlParameter("@Name", userToUpdate.name),
                 new NpgsqlParameter("@LastName", userToUpdate.lastName),
                 new NpgsqlParameter("@Email", userToUpdate.email),
-                new NpgsqlParameter("@Password", userToUpdate.password),
+                new NpgsqlParameter("@Password", userToUpdate.login.password),
+                new NpgsqlParameter("@username", userToUpdate.login.username),
                 new NpgsqlParameter("@IdRol", userToUpdate.idRol),
                 new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
                 {
