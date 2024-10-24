@@ -318,5 +318,25 @@ namespace softvago_API.Logica
                 },
                 new NpgsqlParameter("@Id", userToUpdate.id));
         }
+
+        public async Task<int> InsertUser(User newUser)
+        {
+            const string insertSql = @"INSERT INTO softvago_test.users (name, lastName, email, password, username, registrationDate, idRol, enable) 
+                               VALUES (@Name, @LastName, @Email, @Password, @Username, @RegistrationDate, @IdRol, @Enable)";
+
+            return await ExecuteNonQueryAsync(insertSql,
+                new NpgsqlParameter("@Name", newUser.name),
+                new NpgsqlParameter("@LastName", newUser.lastName),
+                new NpgsqlParameter("@Email", newUser.email),
+                new NpgsqlParameter("@Password", newUser.login.password),
+                new NpgsqlParameter("@Username", newUser.login.username),
+                new NpgsqlParameter("@RegistrationDate", DateTime.UtcNow),
+                new NpgsqlParameter("@IdRol", newUser.idRol),
+                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                {
+                    Value = newUser.enable
+                }
+            );
+        }
     }
 }
