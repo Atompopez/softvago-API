@@ -52,13 +52,30 @@ namespace softvago_API.Models
     public class User
     {
         [Required] public int id { get; set; }
-        [Required] public string name { get; set; }
-        [Required] public string lastName { get; set; }
-        [Required] public string email { get; set; }
-        [Required] public string registrationDate { get; set; }
-        [Required] public int idRol { get; set; }
-        [Required] public bool enable { get; set; }
-        [Required] public Login? login { get; set; }
+
+        [Required(ErrorMessage = "El nombre es obligatorio")]
+        [MinLength(1, ErrorMessage = "El nombre no puede estar vacío")]
+        public string name { get; set; }
+
+        [Required(ErrorMessage = "El apellido es obligatorio")]
+        [MinLength(1, ErrorMessage = "El apellido no puede estar vacío")]
+        public string lastName { get; set; }
+
+        [Required(ErrorMessage = "El email es obligatorio")]
+        [EmailAddress(ErrorMessage = "El formato del correo electrónico no es válido")]
+        public string email { get; set; }
+
+        [Required(ErrorMessage = "La fecha de registro es obligatoria")]
+        public string registrationDate { get; set; }
+
+        [Required(ErrorMessage = "El rol es obligatorio")]
+        public int idRol { get; set; }
+
+        [Required(ErrorMessage = "El estado de habilitación es obligatorio")]
+        public bool enable { get; set; }
+
+        [Required(ErrorMessage = "La información de login es obligatoria")]
+        public Login? login { get; set; }
     }
 
     public class JWT

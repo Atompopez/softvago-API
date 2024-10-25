@@ -68,7 +68,7 @@ namespace softvago_API
                 });
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseAuthorization();
             app.MapControllers();

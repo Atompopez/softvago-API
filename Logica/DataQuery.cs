@@ -321,8 +321,7 @@ namespace softvago_API.Logica
 
         public async Task<int> InsertUser(User newUser)
         {
-            const string insertSql = @"INSERT INTO softvago_test.users (name, lastName, email, password, username, registrationDate, idRol, enable) 
-                               VALUES (@Name, @LastName, @Email, @Password, @Username, @RegistrationDate, @IdRol, @Enable)";
+            const string insertSql = @"INSERT INTO softvago_test.users (name, lastName, email, password, username, registrationDate, idRol, enable) VALUES (@Name, @LastName, @Email, @Password, @Username, @RegistrationDate, @IdRol, @Enable)";
 
             return await ExecuteNonQueryAsync(insertSql,
                 new NpgsqlParameter("@Name", newUser.name),
