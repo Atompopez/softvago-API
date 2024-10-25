@@ -69,10 +69,9 @@ namespace softvago_API
             }
 
             app.UseHttpsRedirection();
-            //app.UseStaticFiles();
             app.UseAuthorization();
             app.MapControllers();
-            app.Urls.Add("http://0.0.0.0:4040");
+            app.Urls.Add("http://0.0.0.0:4040");  
             app.Run();
         }
     }
