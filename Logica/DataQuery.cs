@@ -75,10 +75,10 @@ namespace softvago_API.Logica
                         {
                             id = reader.GetInt32(reader.GetOrdinal("id")),
                             name = reader.GetString(reader.GetOrdinal("name")),
-                            lastName = reader.GetString(reader.GetOrdinal("lastName")),
+                            lastName = reader.GetString(reader.GetOrdinal("lastname")),
                             email = reader.GetString(reader.GetOrdinal("email")),
-                            registrationDate = reader.GetDateTime(reader.GetOrdinal("registrationDate")).ToString("yyyy-MM-dd"),
-                            idRol = reader.GetInt32(reader.GetOrdinal("idRol")),
+                            registrationDate = reader.GetDateTime(reader.GetOrdinal("registration_date")).ToString("yyyy-MM-dd"),
+                            idRol = reader.GetInt32(reader.GetOrdinal("id_rol")),
                             enable = reader.GetBoolean(reader.GetOrdinal("enable")),
                             login = new Login
                             {
@@ -112,8 +112,8 @@ namespace softvago_API.Logica
             return await ExecuteQueryAsync(sql, reader => new Api
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
-                apiName = reader.GetString(reader.GetOrdinal("apiName")),
-                baseUrl = reader.GetString(reader.GetOrdinal("baseUrl")),
+                apiName = reader.GetString(reader.GetOrdinal("api_name")),
+                baseUrl = reader.GetString(reader.GetOrdinal("base_url")),
                 description = reader.GetString(reader.GetOrdinal("description")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
             });
@@ -152,11 +152,12 @@ namespace softvago_API.Logica
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 title = reader.GetString(reader.GetOrdinal("title")),
                 enterprise = reader.GetString(reader.GetOrdinal("enterprise")),
-                urlRedirection = reader.GetString(reader.GetOrdinal("urlRedirection")),
-                shortDescription = reader.GetString(reader.GetOrdinal("shortDescription")),
+                urlRedirection = reader.GetString(reader.GetOrdinal("url_redirection")),
+                shortDescription = reader.GetString(reader.GetOrdinal("short_description")),
                 wage = reader.GetDouble(reader.GetOrdinal("wage")),
-                idLocation = reader.GetInt32(reader.GetOrdinal("idLocation")),
-                idModality = reader.GetInt32(reader.GetOrdinal("idModality")),
+                idLocation = reader.GetInt32(reader.GetOrdinal("id_location")),
+                idModality = reader.GetInt32(reader.GetOrdinal("id_modality")),
+                clicks = reader.GetInt32(reader.GetOrdinal("clicks")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
             });
         }
@@ -180,7 +181,7 @@ namespace softvago_API.Logica
         public async Task<int> AddClickJob(int idJob)
         {
             const string selectSql = "SELECT COUNT(*) FROM softvago_test.jobs WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.jobs SET click = click + 1 WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.jobs SET clicks = clicks + 1 WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", idJob));
             if (count == 0) return 0;
@@ -284,10 +285,10 @@ namespace softvago_API.Logica
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
                 name = reader.GetString(reader.GetOrdinal("name")),
-                lastName = reader.GetString(reader.GetOrdinal("lastName")),
+                lastName = reader.GetString(reader.GetOrdinal("lastname")),
                 email = reader.GetString(reader.GetOrdinal("email")),
-                registrationDate = reader.GetDateTime(reader.GetOrdinal("registrationDate")).ToString("yyyy-MM-dd"),
-                idRol = reader.GetInt32(reader.GetOrdinal("idRol")),
+                registrationDate = reader.GetDateTime(reader.GetOrdinal("registration_date")).ToString("yyyy-MM-dd"),
+                idRol = reader.GetInt32(reader.GetOrdinal("id_rol")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable")),
                 login = new Login
                 {
@@ -299,8 +300,8 @@ namespace softvago_API.Logica
 
         public async Task<int> UpdateUser(User userToUpdate)
         {
-            const string selectSql = "SELECT COUNT(*) FROM softvago_test.user WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.apis SET name = @Name, lastName = @LastName, email = @Email, password = @Password, username = @username, idRol = @IdRol, enable = @Enable WHERE id = @Id";
+            const string selectSql = "SELECT COUNT(*) FROM softvago_test.users WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.users SET name = @Name, lastname = @LastName, email = @Email, password = @Password, username = @username, id_rol = @IdRol, enable = @Enable WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", userToUpdate.id));
             if (count == 0) return 0;
@@ -321,7 +322,7 @@ namespace softvago_API.Logica
 
         public async Task<int> InsertUser(User newUser)
         {
-            const string insertSql = @"INSERT INTO softvago_test.users (name, lastName, email, password, username, registrationDate, idRol, enable) VALUES (@Name, @LastName, @Email, @Password, @Username, @RegistrationDate, @IdRol, @Enable)";
+            const string insertSql = @"INSERT INTO softvago_test.users (name, lastname, email, password, username, registration_date, id_rol, enable) VALUES (@Name, @LastName, @Email, @Password, @Username, @RegistrationDate, @IdRol, @Enable)";
 
             return await ExecuteNonQueryAsync(insertSql,
                 new NpgsqlParameter("@Name", newUser.name),

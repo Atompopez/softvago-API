@@ -17,7 +17,7 @@ namespace softvago_API.Controllers
             _utils = new Utils();
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("Login")]
         public async Task<ActionResult> Login([FromBody] Login loginCredentials)
         {
@@ -149,7 +149,7 @@ namespace softvago_API.Controllers
         [HttpPut]
         [Route("AddClickJob/{id}")]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult> AddClickJob([FromBody] int id) 
+        public async Task<ActionResult> AddClickJob(int id) 
         {
             try
             {
@@ -348,7 +348,7 @@ namespace softvago_API.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpPut]
         [Route("UpdateUsers")]
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> UpdateUsers([FromBody] User user)
@@ -359,6 +359,7 @@ namespace softvago_API.Controllers
                 {
                     return BadRequest("Datos inválidos para la actualización");
                 }
+                user.login.password = _utils.HashGenerator(user.login.password);
                 var updateResult = await _dataQuery.UpdateUser(user);
 
                 if (updateResult > 0)
@@ -378,7 +379,7 @@ namespace softvago_API.Controllers
 
         [HttpPost]
         [Route("PostUsers")]
-        //[Authorize(AuthenticationSchemes = "Bearer")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> PostUsers([FromBody] User user)
         {
             try
