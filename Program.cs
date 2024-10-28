@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using softvago_API.Logica;
 using System.Text;
 
 namespace softvago_API
@@ -11,6 +12,7 @@ namespace softvago_API
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            //builder.Services.AddHostedService<JoobleBackgroundService>();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -68,7 +70,7 @@ namespace softvago_API
                 });
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
             app.Urls.Add("http://0.0.0.0:4040");  
