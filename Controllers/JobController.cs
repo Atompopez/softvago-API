@@ -12,21 +12,25 @@ namespace softvago_API.Controllers
     {
         private readonly DataQuery? _dataQuery;
         private readonly Utils? _utils;
+        private readonly ApiService? _apiService;
 
         public JobController()
         {
             _dataQuery = new DataQuery();
             _utils = new Utils();
+            _apiService = new ApiService();
         }
 
-        [HttpGet]
-        [Route("GetJobs")]
+        [HttpPost]
+        [Route("PostJobs")]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult> GetJobs()
+        public async Task<ActionResult> PostJobs([FromBody] JobSearchParameters searchParameters)
         {
             try
             {
-                var response = await _dataQuery.GetJobs();
+                await _apiService.SearchJobsAsync(searchParameters);
+
+                var response = await _dataQuery.GetJobs(searchParameters.Keywords);
 
                 if (response is not null || response?.Count > 0)
                 {

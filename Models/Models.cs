@@ -4,23 +4,15 @@ namespace softvago_API.Models
 {
     public class Job
     {
-        [Required] public int id { get; set; }
+        [Required] public long id { get; set; }
         [Required] public string title { get; set; }
         [Required] public string enterprise { get; set; }
         [Required] public string urlRedirection { get; set; }
         [Required] public string shortDescription { get; set; }
+        [Required] public string location { get; set; }
         [Required] public double wage { get; set; }
-        [Required] public int idLocation { get; set; }
         [Required] public int idModality { get; set; }
         [Required] public int clicks { get; set; }
-        [Required] public bool enable { get; set; }
-    }
-
-    public class Location
-    {
-        [Required] public int id { get; set; }
-        [Required] public string city { get; set; }
-        [Required] public string country { get; set; }
         [Required] public bool enable { get; set; }
     }
 
@@ -97,4 +89,18 @@ namespace softvago_API.Models
         [Required] public User user { get; set; }
         [Required] public string token { get; set; }
     }
+
+    public class JobSearchParameters
+    {
+        public string Keywords { get; set; } = "it";
+        public string? Location { get; set; }
+        public int? Radius { get; set; }
+        public int? Salary { get; set; }
+        public int? Page { get; set; }
+        public string? SearchMode { get; set; }
+        public int? DatePublication { get; set; }
+        public bool Id { get; set; } = true;
+        public int clicks { get; set; } = 0;
+    }
+
 }

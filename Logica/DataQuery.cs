@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using softvago_API.Models;
+using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace softvago_API.Logica
 {
@@ -143,10 +144,17 @@ namespace softvago_API.Logica
                 throw;
             }
         }
-
-        public async Task<List<Job>> GetJobs()
+        public async Task<List<Job>> GetJobs(string title)
         {
-            const string sql = "SELECT * FROM softvago_test.jobs";
+            string sql = $"SELECT * FROM softvago_test.jobs WHERE title ILIKE '%{title}%'";
+            //for (int i = 0; i < keywords.Count; i++)
+            //{
+            //    sql += $"title ILIKE {paramName} OR ";
+            //}
+
+            //sql = sql.Substring(0, sql.Length - 3);
+
+            // Ejecutar la consulta
             return await ExecuteQueryAsync(sql, reader => new Job
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
@@ -155,7 +163,7 @@ namespace softvago_API.Logica
                 urlRedirection = reader.GetString(reader.GetOrdinal("url_redirection")),
                 shortDescription = reader.GetString(reader.GetOrdinal("short_description")),
                 wage = reader.GetDouble(reader.GetOrdinal("wage")),
-                idLocation = reader.GetInt32(reader.GetOrdinal("id_location")),
+                location = reader.GetString(reader.GetOrdinal("location")),
                 idModality = reader.GetInt32(reader.GetOrdinal("id_modality")),
                 clicks = reader.GetInt32(reader.GetOrdinal("clicks")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
@@ -189,35 +197,74 @@ namespace softvago_API.Logica
             return await ExecuteNonQueryAsync(updateSql, new NpgsqlParameter("@Id", idJob));
         }
 
-        public async Task<List<Location>> GetLocations()
+        public async Task<int> InsertJobs(List<Job> jobs)
         {
-            const string sql = "SELECT * FROM softvago_test.locations";
-            return await ExecuteQueryAsync(sql, reader => new Location
+            const string checkExistSql = "SELECT COUNT(1) FROM softvago_test.jobs WHERE url_redirection = @UrlRedirection";
+            const string insertSql = @"INSERT INTO softvago_test.jobs (title, enterprise, url_redirection, short_description, wage, id_modality, location, clicks, enable) VALUES (@Title, @Enterprise, @UrlRedirection, @ShortDescription, @Wage, @IdModality, @Location, @Clicks, @Enable)";
+
+            int rowsAffected = 0;
+
+            try
             {
-                id = reader.GetInt32(reader.GetOrdinal("id")),
-                city = reader.GetString(reader.GetOrdinal("city")),
-                country = reader.GetString(reader.GetOrdinal("country")),
-                enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            });
-        }
-
-        public async Task<int> UpdateLocation(Location locationToUpdate)
-        {
-            const string selectSql = "SELECT COUNT(*) FROM softvago_test.locations WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.locations SET city = @City, country = @Country, enable = @Enable WHERE id = @Id";
-
-            var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", locationToUpdate.id));
-            if (count == 0) return 0;
-
-            return await ExecuteNonQueryAsync(updateSql,
-                new NpgsqlParameter("@City", locationToUpdate.city),
-                new NpgsqlParameter("@Country", locationToUpdate.country),
-                new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+                foreach (var job in jobs)
                 {
-                    Value = locationToUpdate.enable
-                },
-                new NpgsqlParameter("@Id", locationToUpdate.id));
+                    var exists = await ExecuteNonQueryAsync(checkExistSql, new NpgsqlParameter("@UrlRedirection", job.urlRedirection)) > 0;
+
+                    if (!exists)
+                    {
+                        var enterprise = string.IsNullOrEmpty(job.enterprise) ? "Anonimo" : job.enterprise;
+
+                        rowsAffected += await ExecuteNonQueryAsync(insertSql,
+                            new NpgsqlParameter("@Title", job.title),
+                            new NpgsqlParameter("@Enterprise", enterprise),
+                            new NpgsqlParameter("@UrlRedirection", job.urlRedirection),
+                            new NpgsqlParameter("@ShortDescription", job.shortDescription),
+                            new NpgsqlParameter("@Wage", job.wage),
+                            new NpgsqlParameter("@IdModality", job.idModality),
+                            new NpgsqlParameter("@Location", job.location),
+                            new NpgsqlParameter("@Clicks", job.clicks),
+                            new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit) { Value = job.enable }
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+            return rowsAffected;
         }
+
+        //public async Task<List<Location>> GetLocations()
+        //{
+        //    const string sql = "SELECT * FROM softvago_test.locations";
+        //    return await ExecuteQueryAsync(sql, reader => new Location
+        //    {
+        //        id = reader.GetInt32(reader.GetOrdinal("id")),
+        //        city = reader.GetString(reader.GetOrdinal("city")),
+        //        country = reader.GetString(reader.GetOrdinal("country")),
+        //        enable = reader.GetBoolean(reader.GetOrdinal("enable"))
+        //    });
+        //}
+
+        //public async Task<int> UpdateLocation(Location locationToUpdate)
+        //{
+        //    const string selectSql = "SELECT COUNT(*) FROM softvago_test.locations WHERE id = @Id";
+        //    const string updateSql = "UPDATE softvago_test.locations SET city = @City, country = @Country, enable = @Enable WHERE id = @Id";
+
+        //    var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", locationToUpdate.id));
+        //    if (count == 0) return 0;
+
+        //    return await ExecuteNonQueryAsync(updateSql,
+        //        new NpgsqlParameter("@City", locationToUpdate.city),
+        //        new NpgsqlParameter("@Country", locationToUpdate.country),
+        //        new NpgsqlParameter("@Enable", NpgsqlTypes.NpgsqlDbType.Bit)
+        //        {
+        //            Value = locationToUpdate.enable
+        //        },
+        //        new NpgsqlParameter("@Id", locationToUpdate.id));
+        //}
 
         public async Task<List<Modality>> GetModality()
         {
