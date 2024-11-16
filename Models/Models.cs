@@ -13,7 +13,17 @@ namespace softvago_API.Models
         [Required] public double wage { get; set; }
         [Required] public int idModality { get; set; }
         [Required] public int clicks { get; set; }
-        [Required] public bool enable { get; set; }
+        [Required] public bool enable { get; set; } = true;
+    }
+
+    public class JobSearchParameters
+    {
+        public string Keywords { get; set; } = "it";
+        public string? Location { get; set; }
+        public int? MinSalary { get; set; }
+        public int? MaxSalary { get; set; }
+        public int? DatePublication { get; set; }
+        public int? IdModality { get; set; }
     }
 
     public class Api
@@ -89,18 +99,4 @@ namespace softvago_API.Models
         [Required] public User user { get; set; }
         [Required] public string token { get; set; }
     }
-
-    public class JobSearchParameters
-    {
-        public string Keywords { get; set; } = "it";
-        public string? Location { get; set; }
-        public int? Radius { get; set; }
-        public int? Salary { get; set; }
-        public int? Page { get; set; }
-        public string? SearchMode { get; set; }
-        public int? DatePublication { get; set; }
-        public bool Id { get; set; } = true;
-        public int clicks { get; set; } = 0;
-    }
-
 }

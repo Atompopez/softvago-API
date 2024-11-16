@@ -14,6 +14,8 @@ namespace softvago_API.Logica
                                                 .AddJsonFile("appsettings.json")
                                                 .Build();
 
+        private DataQuery _dataQuery = new DataQuery();
+
         public string HashGenerator(string text)
         {
             using (SHA256 sha256 = SHA256.Create())
@@ -28,18 +30,19 @@ namespace softvago_API.Logica
             }
         }
 
-        public string GenerateJwtToken(Login login)
+        public string GenerateJwtToken(Login login, int IdRol)
         {
             var jwt = _configuration.GetSection("Jwt").Get<JWT>();
 
             var claims = new[]
             {
-                    new Claim(JwtRegisteredClaimNames.Sub, jwt.Subject),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
-                    new Claim("Username", login.username),
-                    new Claim("Username", login.password)
-                };
+                new Claim(JwtRegisteredClaimNames.Sub, jwt.Subject),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+                new Claim("Username", login.username),
+                new Claim("Password", login.password),
+                new Claim("IdRol", IdRol.ToString())
+            };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));
             var singIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -53,6 +56,14 @@ namespace softvago_API.Logica
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<bool> HasRole(int idRol, string rol)
+        {
+            var roles = await _dataQuery.GetRoles();
+            var rolName = roles.FirstOrDefault(r => r.id == idRol)?.name;
+
+            return rolName == rol;
         }
     }
 }

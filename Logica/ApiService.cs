@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.Metrics;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using softvago_API.Logica;
@@ -8,8 +9,17 @@ public class ApiService
 {
     private readonly HttpClient _client;
     private readonly DataQuery _dataQuery;
-    private const string ApiUrl = "https://jooble.org/api/";
-    private const string ApiKey = "3f5453d5-ce7f-42c0-8bd1-ac74b5e9725b";
+    private string ApiUrlJooble;
+    private string ApiUrlAdzuna;
+
+    IEnumerable<string> countries = new[]
+    {
+        "gb", "us", "at", "au", "be",
+        "br", "ca", "ch", "de", "es",
+        "fr", "in", "it", "mx", "nl",
+        "nz", "pl", "sg", "za"
+    };
+
 
     public ApiService()
     {
@@ -19,23 +29,101 @@ public class ApiService
 
     public async Task SearchJobsAsync(JobSearchParameters searchParameters)
     {
-        var JobsList = await GetJobsAPIJooble(searchParameters);
-        await InsertJobsDB(JobsList);
+        Task<List<Job>> task1 = GetJobsAPIJooble(searchParameters);
+        Task<List<Job>> task2 = GetJobsForAllCountriesAsync(searchParameters);
+
+        var results = await Task.WhenAll(task1, task2);
+        //var results = await Task.WhenAll(task2);
+
+        List<Job> jobsFromJooble = results[0];
+        List<Job> jobsFromAdzuna = results[1];
+        List<Job> allJobs = jobsFromJooble.Concat(jobsFromAdzuna).ToList();
+        //List<Job> allJobs = jobsFromAdzuna.ToList();
+
+        await InsertJobsDB(allJobs);
+    }
+
+    private async Task<List<Job>> GetJobsForAllCountriesAsync(JobSearchParameters searchParameters)
+    {
+        var allJobs = new List<Job>();
+        int maxConcurrency = 2;
+        var semaphore = new SemaphoreSlim(maxConcurrency);
+
+        var tasks = countries.Select(async country =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var jobs = await GetJobsAPIAdzuna(searchParameters, country);
+                lock (allJobs)
+                {
+                    allJobs.AddRange(jobs);
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        //allJobs = await GetJobsAPIAdzuna(searchParameters, "gb");
+        return allJobs;
+    }
+
+    private async Task<List<Job>> GetJobsAPIAdzuna(JobSearchParameters searchParameters, string country)
+    {
+        string id = "665f7346";
+        string key = "1525bff2cee672129bef2fdaa766f4b1";
+        ApiUrlAdzuna = $"https://api.adzuna.com/v1/api/jobs/{country}/search/1?app_id={id}&app_key={key}&what={searchParameters.Keywords}";
+        List<Job> jobs = new List<Job>();
+
+        try
+        {
+            var response = await _client.GetAsync(ApiUrlAdzuna);
+            response.EnsureSuccessStatusCode();
+
+            using (var reader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8))
+            {
+                var responseBody = await reader.ReadToEndAsync();
+
+                var jsonResponse = JObject.Parse(responseBody);
+                var jobList = jsonResponse["results"].ToObject<dynamic>();
+
+                foreach (var item in jobList)
+                {
+                    var job = new Job
+                    {
+                        id = item.id,
+                        title = item.title,
+                        enterprise = item.company.display_name,
+                        urlRedirection = item.redirect_url,
+                        shortDescription = item.description,
+                        location = item.location.display_name,
+                        wage = ConvertSalaryAdzuna(double.Parse(item.salary_max.ToString())),
+                        idModality = ConvertModality(item.title, item.location),
+                    };
+                    jobs.Add(job);
+                }
+            }
+            return jobs;
+        }
+        catch (Exception e)
+        {
+            return jobs;
+        }
     }
 
     private async Task<List<Job>> GetJobsAPIJooble(JobSearchParameters searchParameters)
     {
+        string ApiKey = "3f5453d5-ce7f-42c0-8bd1-ac74b5e9725b";
+        ApiUrlJooble = "https://jooble.org/api/";
         List<Job> jobs = new List<Job>();
 
         var jsonRequest = new
         {
             keywords = searchParameters.Keywords,
-            location = searchParameters.Location,
-            radius = searchParameters.Radius,
-            salary = searchParameters.Salary,
-            page = searchParameters.Page,
-            searchMode = searchParameters.SearchMode,
-            datePublication = searchParameters.DatePublication
+            location = searchParameters.Location
         };
 
         var jsonContent = JsonConvert.SerializeObject(jsonRequest, new JsonSerializerSettings
@@ -46,7 +134,7 @@ public class ApiService
 
         try
         {
-            var response = await _client.PostAsync(ApiUrl + ApiKey, content);
+            var response = await _client.PostAsync(ApiUrlJooble + ApiKey, content);
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
@@ -64,9 +152,9 @@ public class ApiService
                     shortDescription = item.snippet,
                     location = item.location,
                     wage = item.salary != ""
-                        ? ConvertSalary(item.salary)
+                        ? ConvertSalaryAdzuna(item.salary)
                         : 0.0,
-                    idModality = ConvertModality(item.title),
+                    idModality = ConvertModality(item.title, item.location),
                 };
                 jobs.Add(job);
             }
@@ -80,7 +168,12 @@ public class ApiService
         }
     }
 
-    private double ConvertSalary(dynamic salary)
+    private double ConvertSalaryAdzuna(double salary)
+    {
+        return salary * 1.05;
+    }
+
+    private double ConvertSalaryJooble(dynamic salary)
     {
         salary = salary.ToString();
         salary = salary.Replace("$", "").Trim();
@@ -93,9 +186,10 @@ public class ApiService
         return Convert.ToDouble(salary);
     }
 
-    private int ConvertModality(dynamic modality)
+    private int ConvertModality(dynamic title, dynamic location)
     {
-        string modalityString = modality.ToString();
+        string titleString = title.ToString();
+        string locationString = location.ToString();
         int valor = 4;
 
         var keywords = new Dictionary<string, int>
@@ -108,12 +202,15 @@ public class ApiService
 
         foreach (var word in keywords)
         {
-            if (modalityString.IndexOf(word.Key, StringComparison.OrdinalIgnoreCase) >= 0)
-            {
+            if (titleString.IndexOf(word.Key, StringComparison.OrdinalIgnoreCase) >= 0)
                 valor = word.Value;
-            }
-        }
 
+            if (locationString.IndexOf(word.Key, StringComparison.OrdinalIgnoreCase) >= 0)
+                valor = word.Value;
+
+            if (valor != 4)
+                return valor;
+        }
         return valor;
     }
 

@@ -1,5 +1,8 @@
-﻿using Npgsql;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Npgsql;
 using softvago_API.Models;
+using System.Text;
 using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 namespace softvago_API.Logica
@@ -140,21 +143,56 @@ namespace softvago_API.Logica
             }
             catch (Exception ex)
             {
-
                 throw;
             }
         }
-        public async Task<List<Job>> GetJobs(string title)
+
+        public async Task<List<Job>> GetJobs(JobSearchParameters searchParameters, bool full = false)
         {
-            string sql = $"SELECT * FROM softvago_test.jobs WHERE title ILIKE '%{title}%'";
-            //for (int i = 0; i < keywords.Count; i++)
-            //{
-            //    sql += $"title ILIKE {paramName} OR ";
-            //}
+            var conditions = new List<string>();
+            var parameters = new List<NpgsqlParameter>();
 
-            //sql = sql.Substring(0, sql.Length - 3);
+            if (!string.IsNullOrEmpty(searchParameters.Keywords))
+            {
+                conditions.Add("title ILIKE @Title");
+                parameters.Add(new NpgsqlParameter("@Title", $"%{searchParameters.Keywords}%"));
+            }
 
-            // Ejecutar la consulta
+            if (!string.IsNullOrEmpty(searchParameters.Location))
+            {
+                conditions.Add("location ILIKE @Location");
+                parameters.Add(new NpgsqlParameter("@Location", $"%{searchParameters.Location}%"));
+            }
+
+            if (searchParameters.MinSalary.HasValue)
+            {
+                conditions.Add("wage >= @MinWage");
+                parameters.Add(new NpgsqlParameter("@MinWage", searchParameters.MinSalary.Value));
+            }
+
+            if (searchParameters.MaxSalary.HasValue)
+            {
+                conditions.Add("wage <= @MaxWage");
+                parameters.Add(new NpgsqlParameter("@MaxWage", searchParameters.MaxSalary.Value));
+            }
+
+            if (searchParameters.IdModality.HasValue)
+            {
+                conditions.Add("id_modality = @IdModality");
+                parameters.Add(new NpgsqlParameter("@IdModality", searchParameters.IdModality.Value));
+            }
+
+            if (!full)
+            {
+                conditions.Add("enable = B'1'");
+            }
+
+            string whereClause = conditions.Count > 0
+                ? "WHERE " + string.Join(" AND ", conditions)
+                : "";
+
+            string sql = $"SELECT * FROM softvago_test.jobs {whereClause}";
+
             return await ExecuteQueryAsync(sql, reader => new Job
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
@@ -167,7 +205,7 @@ namespace softvago_API.Logica
                 idModality = reader.GetInt32(reader.GetOrdinal("id_modality")),
                 clicks = reader.GetInt32(reader.GetOrdinal("clicks")),
                 enable = reader.GetBoolean(reader.GetOrdinal("enable"))
-            });
+            }, parameters.ToArray());
         }
 
         public async Task<int> UpdateJob(Job jobToUpdate)
@@ -199,7 +237,7 @@ namespace softvago_API.Logica
 
         public async Task<int> InsertJobs(List<Job> jobs)
         {
-            const string checkExistSql = "SELECT COUNT(1) FROM softvago_test.jobs WHERE url_redirection = @UrlRedirection";
+            const string checkExistSql = "SELECT COUNT(1) FROM softvago_test.jobs WHERE short_description = @ShortDescription";
             const string insertSql = @"INSERT INTO softvago_test.jobs (title, enterprise, url_redirection, short_description, wage, id_modality, location, clicks, enable) VALUES (@Title, @Enterprise, @UrlRedirection, @ShortDescription, @Wage, @IdModality, @Location, @Clicks, @Enable)";
 
             int rowsAffected = 0;
@@ -208,7 +246,7 @@ namespace softvago_API.Logica
             {
                 foreach (var job in jobs)
                 {
-                    var exists = await ExecuteNonQueryAsync(checkExistSql, new NpgsqlParameter("@UrlRedirection", job.urlRedirection)) > 0;
+                    var exists = await ExecuteNonQueryAsync(checkExistSql, new NpgsqlParameter("@ShortDescription", job.shortDescription)) > 0;
 
                     if (!exists)
                     {
@@ -310,7 +348,7 @@ namespace softvago_API.Logica
         public async Task<int> UpdateRol(Rol rolToUpdate)
         {
             const string selectSql = "SELECT COUNT(*) FROM softvago_test.rol WHERE id = @Id";
-            const string updateSql = "UPDATE softvago_test.rol SET name = @Name, description = @Description, enable = @Enable WHERE id = @Id";
+            const string updateSql = "UPDATE softvago_test.rol SET description = @Description, enable = @Enable WHERE id = @Id";
 
             var count = (int)await ExecuteNonQueryAsync(selectSql, new NpgsqlParameter("@Id", rolToUpdate.id));
             if (count == 0) return 0;

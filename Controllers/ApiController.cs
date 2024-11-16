@@ -26,14 +26,22 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var response = await _dataQuery.GetApis();
+                var rol = Convert.ToInt32(User.Claims
+                     .Where(c => c.Type == "IdRol")
+                     .Select(c => c.Value));
 
-                if (response is not null || response?.Count > 0)
+                if (await _utils.HasRole(rol, "Administrador"))
                 {
-                    var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
-                    return Ok(jsonString);
+                    var response = await _dataQuery.GetApis();
+
+                    if (response is not null || response?.Count > 0)
+                    {
+                        var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
+                        return Ok(jsonString);
+                    }
+                    return NoContent(); 
                 }
-                return NoContent();
+                return Unauthorized("No tienes permisos para acceder a este recurso");
             }
             catch
             {
@@ -48,20 +56,28 @@ namespace softvago_API.Controllers
         {
             try
             {
-                if (apiToUpdate == null || apiToUpdate.id == 0)
-                {
-                    return BadRequest("Datos inválidos para la actualización");
-                }
-                var updateResult = await _dataQuery.UpdateApi(apiToUpdate);
+                var rol = Convert.ToInt32(User.Claims
+                     .Where(c => c.Type == "IdRol")
+                     .Select(c => c.Value));
 
-                if (updateResult > 0)
+                if (await _utils.HasRole(rol, "Administrador"))
                 {
-                    return Ok("Actualización exitosa");
+                    if (apiToUpdate == null || apiToUpdate.id == 0)
+                    {
+                        return BadRequest("Datos inválidos para la actualización");
+                    }
+                    var updateResult = await _dataQuery.UpdateApi(apiToUpdate);
+
+                    if (updateResult > 0)
+                    {
+                        return Ok("Actualización exitosa");
+                    }
+                    else
+                    {
+                        return NotFound("No se encontró la API para actualizar");
+                    }
                 }
-                else
-                {
-                    return NotFound("No se encontró la API para actualizar");
-                }
+                return Unauthorized("No tienes permisos para acceder a este recurso");
             }
             catch (Exception ex)
             {

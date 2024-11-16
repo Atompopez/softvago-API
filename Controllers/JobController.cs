@@ -30,9 +30,9 @@ namespace softvago_API.Controllers
             {
                 await _apiService.SearchJobsAsync(searchParameters);
 
-                var response = await _dataQuery.GetJobs(searchParameters.Keywords);
+                var response = await _dataQuery.GetJobs(searchParameters);
 
-                if (response is not null || response?.Count > 0)
+                if (response is not null && response?.Count > 0)
                 {
                     var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
                     return Ok(jsonString);
