@@ -17,7 +17,7 @@ namespace softvago_API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new() { Title = "Softvago API", Version = "v1" });
+                c.SwaggerDoc("v2", new() { Title = "Softvago API", Version = "v2" });
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -65,7 +65,7 @@ namespace softvago_API
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Softvago API V1");
+                    c.SwaggerEndpoint("/swagger/v2/swagger.json", "Softvago API V2");
                     c.RoutePrefix = string.Empty;
                 });
             }
