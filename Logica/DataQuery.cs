@@ -304,9 +304,13 @@ namespace softvago_API.Logica
         //        new NpgsqlParameter("@Id", locationToUpdate.id));
         //}
 
-        public async Task<List<Modality>> GetModality()
+        public async Task<List<Modality>> GetModality(bool full = false)
         {
-            const string sql = "SELECT * FROM softvago_test.modality";
+            string sql = "SELECT * FROM softvago_test.modality ";
+
+            if (!full)
+                sql += "WHERE enable = B'1'";
+
             return await ExecuteQueryAsync(sql, reader => new Modality
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),
@@ -333,9 +337,13 @@ namespace softvago_API.Logica
                 new NpgsqlParameter("@Id", modalityToUpdate.id));
         }
 
-        public async Task<List<Rol>> GetRoles()
+        public async Task<List<Rol>> GetRoles(bool full = false)
         {
-            const string sql = "SELECT * FROM softvago_test.rol";
+            string sql = "SELECT * FROM softvago_test.rol ";
+
+            if (!full)
+                sql += "WHERE enable = B'1'";
+
             return await ExecuteQueryAsync(sql, reader => new Rol
             {
                 id = reader.GetInt32(reader.GetOrdinal("id")),

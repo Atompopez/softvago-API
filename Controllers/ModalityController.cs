@@ -26,7 +26,14 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var response = await _dataQuery.GetModality();
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
+
+                bool Admin = await _utils.HasRole(rol, "Administrador");
+
+                var response = await _dataQuery.GetModality(Admin);
 
                 if (response is not null || response?.Count > 0)
                 {
@@ -48,20 +55,29 @@ namespace softvago_API.Controllers
         {
             try
             {
-                if (modalityToUpdate == null || modalityToUpdate.id == 0)
-                {
-                    return BadRequest("Datos inválidos para la actualización");
-                }
-                var updateResult = await _dataQuery.UpdateModality(modalityToUpdate);
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
 
-                if (updateResult > 0)
+                if (await _utils.HasRole(rol, "Administrador"))
                 {
-                    return Ok("Actualización exitosa");
+                    if (modalityToUpdate == null || modalityToUpdate.id == 0)
+                    {
+                        return BadRequest("Datos inválidos para la actualización");
+                    }
+                    var updateResult = await _dataQuery.UpdateModality(modalityToUpdate);
+
+                    if (updateResult > 0)
+                    {
+                        return Ok("Actualización exitosa");
+                    }
+                    else
+                    {
+                        return NotFound("No se encontró la modalidad para actualizar");
+                    }
                 }
-                else
-                {
-                    return NotFound("No se encontró la modalidad para actualizar");
-                }
+                return Unauthorized("No tienes permisos para acceder a este recurso");
             }
             catch (Exception ex)
             {

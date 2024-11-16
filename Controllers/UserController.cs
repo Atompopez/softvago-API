@@ -26,14 +26,23 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var response = await _dataQuery.GetUsers();
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
 
-                if (response is not null || response?.Count > 0)
+                if (await _utils.HasRole(rol, "Administrador"))
                 {
-                    var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
-                    return Ok(jsonString);
+                    var response = await _dataQuery.GetUsers();
+
+                    if (response is not null || response?.Count > 0)
+                    {
+                        var jsonString = JsonConvert.SerializeObject(response, Formatting.Indented);
+                        return Ok(jsonString);
+                    }
+                    return NoContent();
                 }
-                return NoContent();
+                return Unauthorized("No tienes permisos para acceder a este recurso");
             }
             catch
             {
@@ -52,6 +61,7 @@ namespace softvago_API.Controllers
                 {
                     return BadRequest("Datos inválidos para la actualización");
                 }
+
                 user.login.password = _utils.HashGenerator(user.login.password);
                 var updateResult = await _dataQuery.UpdateUser(user);
 

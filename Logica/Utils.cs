@@ -14,7 +14,7 @@ namespace softvago_API.Logica
                                                 .AddJsonFile("appsettings.json")
                                                 .Build();
 
-        private DataQuery _dataQuery = new DataQuery();
+        private DataQuery _dataQuery;
 
         public string HashGenerator(string text)
         {
@@ -58,10 +58,12 @@ namespace softvago_API.Logica
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<bool> HasRole(int idRol, string rol)
+        public async Task<bool> HasRole(string idRol, string rol)
         {
+            _dataQuery = new();
+
             var roles = await _dataQuery.GetRoles();
-            var rolName = roles.FirstOrDefault(r => r.id == idRol)?.name;
+            var rolName = roles.FirstOrDefault(r => r.id == int.Parse(idRol))?.name;
 
             return rolName == rol;
         }

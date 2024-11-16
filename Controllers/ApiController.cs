@@ -26,9 +26,10 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var rol = Convert.ToInt32(User.Claims
-                     .Where(c => c.Type == "IdRol")
-                     .Select(c => c.Value));
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
 
                 if (await _utils.HasRole(rol, "Administrador"))
                 {
@@ -56,9 +57,9 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var rol = Convert.ToInt32(User.Claims
+                var rol = User.Claims
                      .Where(c => c.Type == "IdRol")
-                     .Select(c => c.Value));
+                     .Select(c => c.Value).ToString();
 
                 if (await _utils.HasRole(rol, "Administrador"))
                 {

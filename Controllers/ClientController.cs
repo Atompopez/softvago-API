@@ -29,7 +29,7 @@ namespace softvago_API.Controllers
 
                 if (response.success)
                 {
-                    var token = _utils.GenerateJwtToken(loginCredentials, response.idRol);
+                    var token = _utils.GenerateJwtToken(loginCredentials, response.data.idRol);
                     var responseAPI = new
                     {
                         Message = "Inicio de sesión exitoso",

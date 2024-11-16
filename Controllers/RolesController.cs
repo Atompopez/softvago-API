@@ -26,7 +26,14 @@ namespace softvago_API.Controllers
         {
             try
             {
-                var response = await _dataQuery.GetRoles();
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
+
+                bool Admin = await _utils.HasRole(rol, "Administrador");
+
+                var response = await _dataQuery.GetRoles(Admin);
 
                 if (response is not null || response?.Count > 0)
                 {
@@ -48,20 +55,29 @@ namespace softvago_API.Controllers
         {
             try
             {
-                if (roleToUpdate == null || roleToUpdate.id == 0)
-                {
-                    return BadRequest("Datos inválidos para la actualización");
-                }
-                var updateResult = await _dataQuery.UpdateRol(roleToUpdate);
+                var rol = User.Claims
+                              .Where(c => c.Type == "IdRol")
+                              .Select(c => c.Value)
+                              .FirstOrDefault();
 
-                if (updateResult > 0)
+                if (await _utils.HasRole(rol, "Administrador"))
                 {
-                    return Ok("Actualización exitosa");
+                    if (roleToUpdate == null || roleToUpdate.id == 0)
+                    {
+                        return BadRequest("Datos inválidos para la actualización");
+                    }
+                    var updateResult = await _dataQuery.UpdateRol(roleToUpdate);
+
+                    if (updateResult > 0)
+                    {
+                        return Ok("Actualización exitosa");
+                    }
+                    else
+                    {
+                        return NotFound("No se encontró el rol para actualizar");
+                    }
                 }
-                else
-                {
-                    return NotFound("No se encontró el rol para actualizar");
-                }
+                return Unauthorized("No tienes permisos para acceder a este recurso");
             }
             catch (Exception ex)
             {
